@@ -49,10 +49,10 @@ headers = {
 # SQL sorğusu
 sql_query = """
 SELECT
-    sto_isim,
-    sto_kod,
-    sto_prim_orani,
-    dbo.fn_DepolardakiMiktarB(sto_kod, CONVERT(nvarchar(10), GETDATE(), 120)) AS miktar
+    sto_isim STOK_AD,
+    sto_kod STOK_KOD,
+    sto_prim_orani BAZARLAMA_QOL,
+    MikroDB_V16_05.dbo.fn_DepolardakiMiktarB(sto_kod, CONVERT(nvarchar(10), GETDATE(), 120)) AS MIQDAR
 FROM
     MikroDB_V16_05.dbo.STOKLAR
 WHERE
