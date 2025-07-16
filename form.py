@@ -1,71 +1,118 @@
 import streamlit as st
 import pandas as pd
+import requests
 from datetime import datetime
+from io import BytesIO
+from github import Github
 import os
 
-# Load customer data
-customer_df = pd.read_excel("customer.xlsx")
+# ---------- CONFIG ----------
+GITHUB_REPO = "fab_boya_form"
+GITHUB_USER = "imatinbayram"
+GITHUB_FILE_PATH = "result.xlsx"
+RAW_GITHUB_URL = f"https://raw.githubusercontent.com/{GITHUB_USER}/{GITHUB_REPO}/main/{GITHUB_FILE_PATH}"
 
+# ---------- LOAD EXISTING RESULT ----------
+@st.cache_data(show_spinner=False)
+def load_github_excel():
+    try:
+        response = requests.get(RAW_GITHUB_URL)
+        if response.status_code == 200:
+            return pd.read_excel(BytesIO(response.content))
+    except:
+        pass
+    return pd.DataFrame()
+
+# ---------- PUSH TO GITHUB ----------
+def push_to_github(local_file, repo_name, token, commit_message, github_file_path):
+    g = Github(token)
+    repo = g.get_user().get_repo(repo_name)
+
+    with open(local_file, "rb") as f:
+        content = f.read()
+
+    try:
+        existing = repo.get_contents(github_file_path)
+        repo.update_file(github_file_path, commit_message, content, existing.sha)
+    except:
+        repo.create_file(github_file_path, commit_message, content)
+
+# ---------- STREAMLIT SESSION ----------
+st.set_page_config(page_title="FAB - Bazarlama", layout="centered")
+
+if "submitted" not in st.session_state:
+    st.session_state.submitted = False
+
+def restart_app():
+    st.session_state.submitted = False
+    st.rerun()
+
+# ---------- UI ----------
 st.title("FAB - Bazarlama")
 
-# Add "---" to start of region list
-regions = ["---"] + sorted(customer_df['region'].unique().tolist())
-region = st.selectbox("Filial seçin:", regions)
+customer_df = pd.read_excel("customer.xlsx")
 
-# Only proceed if a valid region is selected
-if region != "---":
-    # Filter customers by region
-    filtered_customers = customer_df[customer_df['region'] == region]
-    customer_names = ["---"] + filtered_customers['name'].tolist()
+if not st.session_state.submitted:
+    regions = ["---"] + sorted(customer_df["region"].unique())
+    region = st.selectbox("Filial seçin:", regions)
 
-    # Customer selection
-    name = st.selectbox("Müştəri seçin:", customer_names)
+    if region != "---":
+        customers = customer_df[customer_df["region"] == region]
+        names = ["---"] + customers["name"].tolist()
+        name = st.selectbox("Müştəri seçin:", names)
 
-    # Only proceed if valid customer is selected
-    if name != "---":
-        customer_row = filtered_customers[filtered_customers['name'] == name].iloc[0]
-        code = customer_row['code']
-        st.write(f"**Müştəri kodu:** `{code}`")
+        if name != "---":
+            code = customers[customers["name"] == name]["code"].iloc[0]
+            st.write(f"**Müştəri kodu:** `{code}`")
 
-        # Form
-        with st.form("feedback_form"):
-            fab = st.radio("Mağazada FAB Boya məhsulları var?", ["Bəli", "Xeyr"], key="fab")
-            fab_percent = None
-            if fab == "Bəli":
-                fab_percent = st.number_input(
-                    "FAB Boya məhsullarının mağazadakı ümumi boya məhsullarına görə payı neçə faizdir?",
-                    min_value=0, max_value=100, step=1, key="fab_percent"
-                )
+            with st.form("form"):
+                fab = st.radio("Mağazada FAB Boya məhsulları var?", ["", "Bəli", "Xeyr"], index=0)
+                fab_percent = None
+                if fab == "Bəli":
+                    fab_percent = st.number_input("FAB məhsullarının mağazadakı payı (%)", 0, 100, step=1)
 
-            sobsan = st.radio("Mağazada Sobsan məhsulları var?", ["Bəli", "Xeyr"], key="sobsan")
-            sobsan_percent = None
-            if sobsan == "Bəli":
-                sobsan_percent = st.number_input(
-                    "Sobsan məhsullarının mağazadakı ümumi boya məhsullarına görə payı neçə faizdir?",
-                    min_value=0, max_value=100, step=1, key="sobsan_percent"
-                )
+                sobsan = st.radio("Mağazada Sobsan məhsulları var?", ["", "Bəli", "Xeyr"], index=0)
+                sobsan_percent = None
+                if sobsan == "Bəli":
+                    sobsan_percent = st.number_input("Sobsan məhsullarının mağazadakı payı (%)", 0, 100, step=1)
 
-            submitted = st.form_submit_button("Təsdiqlə")
+                submit = st.form_submit_button("Təsdiqlə")
 
-            if submitted:
-                new_row = {
-                    "date": datetime.now().strftime("%Y-%m-%d %H:%M:%S"),
-                    "region": region,
-                    "code": code,
-                    "name": name,
-                    "fab": fab,
-                    "fab_percent": fab_percent if fab == "Bəli" else "",
-                    "sobsan": sobsan,
-                    "sobsan_percent": sobsan_percent if sobsan == "Bəli" else ""
-                }
+                if submit:
+                    if fab == "" or sobsan == "":
+                        st.warning("Zəhmət olmasa bütün sualları cavablandırın.")
+                    else:
+                        new_row = {
+                            "date": datetime.now().strftime("%Y-%m-%d %H:%M:%S"),
+                            "region": region,
+                            "code": code,
+                            "name": name,
+                            "fab": fab,
+                            "fab_percent": fab_percent if fab == "Bəli" else "",
+                            "sobsan": sobsan,
+                            "sobsan_percent": sobsan_percent if sobsan == "Bəli" else ""
+                        }
 
-                # Save to result.xlsx
-                result_file = "result.xlsx"
-                if os.path.exists(result_file):
-                    result_df = pd.read_excel(result_file)
-                    result_df = pd.concat([result_df, pd.DataFrame([new_row])], ignore_index=True)
-                else:
-                    result_df = pd.DataFrame([new_row])
+                        # Load existing data
+                        df = load_github_excel()
+                        df = pd.concat([df, pd.DataFrame([new_row])], ignore_index=True)
 
-                result_df.to_excel(result_file, index=False)
-                st.success("Məlumatlar uğurla göndərildi!")
+                        # Save locally
+                        df.to_excel("result.xlsx", index=False)
+
+                        # Push to GitHub
+                        push_to_github(
+                            local_file="result.xlsx",
+                            repo_name=GITHUB_REPO,
+                            token=st.secrets["github_token"],
+                            commit_message="Update result.xlsx via Streamlit form",
+                            github_file_path=GITHUB_FILE_PATH
+                        )
+
+                        st.session_state.submitted = True
+                        st.rerun()
+
+else:
+    st.success("Məlumatlar uğurla göndərildi!")
+    if st.button("Yeni"):
+        restart_app()
