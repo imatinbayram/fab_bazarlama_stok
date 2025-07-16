@@ -7,7 +7,37 @@ import warnings
 warnings.simplefilter("ignore")
 
 # Başlıq
-st.title("📦 Stok Siyahısı - Prim Oranı və Depo Miktarı")
+st.title("📦 Stok Siyahısı - Depo Miktarı")
+
+#Sehifenin nastroykasi
+st.set_page_config(
+    page_title='📦 Stok Siyahısı - Depo Miktarı',
+    page_icon='logo.png',
+    layout="wide",
+    initial_sidebar_state="expanded",
+    menu_items={
+        'About': "# FAB Markalar \n Bu hesabat FAB şirkətlər qrupu üçün hazırlanmışdır."
+    }
+)
+
+css_header = """
+<style>
+
+    [data-testid="stHeader"] {
+        display: none;
+    }
+    
+    [data-testid="stElementToolbar"] {
+        display: none;
+    }
+    
+</style>
+<title>FAB MARKALAR</title>
+<meta name="description" content="FAB Şirkətlər Qrupu" />
+"""
+
+st.markdown(css_header, unsafe_allow_html=True)
+
 
 # API ünvanı və başlıqlar
 api_url = "http://81.17.83.210:1999/api/Metin/GetQueryTable"
