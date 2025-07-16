@@ -24,7 +24,7 @@ SELECT
     sto_prim_orani,
     dbo.fn_DepolardakiMiktarB(sto_kod, CONVERT(nvarchar(10), GETDATE(), 120)) AS miktar
 FROM
-    STOKLAR
+    MikroDB_V16_05.dbo.STOKLAR
 WHERE
     sto_prim_orani IN (1, 2, 3, 4, 5);
 """
