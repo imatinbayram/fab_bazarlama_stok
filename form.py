@@ -6,32 +6,32 @@ import os
 # Load customer data
 customer_df = pd.read_excel("customer.xlsx")
 
-st.title("Customer Feedback Form")
+st.title("FAB - Bazarlama")
 
 # Select Region
-region = st.selectbox("Select Region", sorted(customer_df['region'].unique()))
+region = st.selectbox("Filial seçin:", sorted(customer_df['region'].unique()))
 
 # Filter customers by region
 filtered_customers = customer_df[customer_df['region'] == region]
 
 # Select Customer Name
-name = st.selectbox("Select Customer", filtered_customers['name'].tolist())
+name = st.selectbox("Müştəri seçin:", filtered_customers['name'].tolist())
 
 # Get Customer Code for selected name
 customer_row = filtered_customers[filtered_customers['name'] == name].iloc[0]
 code = customer_row['code']
 
-st.write(f"**Customer Code:** `{code}`")
+st.write(f"**Müştəri kodu:** `{code}`")
 
 # Start form
 with st.form("feedback_form"):
-    fab = st.radio("FAB?", ["Yes", "No"])
-    fab_percent = st.number_input("FAB Percent", min_value=0, max_value=100, step=1) if fab == "Yes" else ""
+    fab = st.radio("Mağazada FAB Boya məhsulları var?", ["Bəli", "Xeyr"])
+    fab_percent = st.number_input("FAB Boya məhsullarının mağazadakı ümumi boya məhsullarına görə payı neçə faizdir?", min_value=0, max_value=100, step=1) if fab == "Yes" else ""
 
-    sobsan = st.radio("Sobsan?", ["Yes", "No"])
-    sobsan_percent = st.number_input("Sobsan Percent", min_value=0, max_value=100, step=1) if sobsan == "Yes" else ""
+    sobsan = st.radio("Mağazada Sobsan məhsulları var?", ["Bəli", "Xeyr"])
+    sobsan_percent = st.number_input("Sobsan məhsullarının mağazadakı ümumi boya məhsullarına görə payı neçə faizdir?", min_value=0, max_value=100, step=1) if sobsan == "Yes" else ""
 
-    submitted = st.form_submit_button("Submit")
+    submitted = st.form_submit_button("Təsdiqlə")
 
     if submitted:
         # Create a result row
@@ -56,4 +56,4 @@ with st.form("feedback_form"):
 
         # Save updated results
         result_df.to_excel(result_file, index=False)
-        st.success("Form submitted and saved to result.xlsx")
+        st.success("Məlumatlar göndərildi!")
