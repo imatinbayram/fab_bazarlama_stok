@@ -8,52 +8,58 @@ customer_df = pd.read_excel("customer.xlsx")
 
 st.title("FAB - Bazarlama")
 
-# Select Region
+# Select Region (Filial)
 region = st.selectbox("Filial seçin:", sorted(customer_df['region'].unique()))
 
 # Filter customers by region
-filtered_customers = customer_df[customer_df['region'] == region]
+if region:
+    filtered_customers = customer_df[customer_df['region'] == region]
 
-# Select Customer Name
-name = st.selectbox("Müştəri seçin:", filtered_customers['name'].tolist())
+    # Select Customer Name (Müştəri)
+    name = st.selectbox("Müştəri seçin:", filtered_customers['name'].tolist())
+    customer_row = filtered_customers[filtered_customers['name'] == name].iloc[0]
+    code = customer_row['code']
+    st.write(f"**Müştəri kodu:** `{code}`")
 
-# Get Customer Code for selected name
-customer_row = filtered_customers[filtered_customers['name'] == name].iloc[0]
-code = customer_row['code']
+    # Form only visible after region and name selected
+    with st.form("feedback_form"):
+        fab = st.radio("Mağazada FAB Boya məhsulları var?", ["Bəli", "Xeyr"], key="fab")
+        fab_percent = None
+        if fab == "Bəli":
+            fab_percent = st.number_input(
+                "FAB Boya məhsullarının mağazadakı ümumi boya məhsullarına görə payı neçə faizdir?",
+                min_value=0, max_value=100, step=1, key="fab_percent"
+            )
 
-st.write(f"**Müştəri kodu:** `{code}`")
+        sobsan = st.radio("Mağazada Sobsan məhsulları var?", ["Bəli", "Xeyr"], key="sobsan")
+        sobsan_percent = None
+        if sobsan == "Bəli":
+            sobsan_percent = st.number_input(
+                "Sobsan məhsullarının mağazadakı ümumi boya məhsullarına görə payı neçə faizdir?",
+                min_value=0, max_value=100, step=1, key="sobsan_percent"
+            )
 
-# Start form
-with st.form("feedback_form"):
-    fab = st.radio("Mağazada FAB Boya məhsulları var?", ["Bəli", "Xeyr"])
-    fab_percent = st.number_input("FAB Boya məhsullarının mağazadakı ümumi boya məhsullarına görə payı neçə faizdir?", min_value=0, max_value=100, step=1) if fab == "Yes" else ""
+        submitted = st.form_submit_button("Təsdiqlə")
 
-    sobsan = st.radio("Mağazada Sobsan məhsulları var?", ["Bəli", "Xeyr"])
-    sobsan_percent = st.number_input("Sobsan məhsullarının mağazadakı ümumi boya məhsullarına görə payı neçə faizdir?", min_value=0, max_value=100, step=1) if sobsan == "Yes" else ""
+        if submitted:
+            new_row = {
+                "date": datetime.now().strftime("%Y-%m-%d %H:%M:%S"),
+                "region": region,
+                "code": code,
+                "name": name,
+                "fab": fab,
+                "fab_percent": fab_percent if fab == "Bəli" else "",
+                "sobsan": sobsan,
+                "sobsan_percent": sobsan_percent if sobsan == "Bəli" else ""
+            }
 
-    submitted = st.form_submit_button("Təsdiqlə")
+            # Save to result.xlsx
+            result_file = "result.xlsx"
+            if os.path.exists(result_file):
+                result_df = pd.read_excel(result_file)
+                result_df = pd.concat([result_df, pd.DataFrame([new_row])], ignore_index=True)
+            else:
+                result_df = pd.DataFrame([new_row])
 
-    if submitted:
-        # Create a result row
-        new_row = {
-            "date": datetime.now().strftime("%Y-%m-%d %H:%M:%S"),
-            "region": region,
-            "code": code,
-            "name": name,
-            "fab": fab,
-            "fab_percent": fab_percent,
-            "sobsan": sobsan,
-            "sobsan_percent": sobsan_percent
-        }
-
-        # Load or create result.xlsx
-        result_file = "result.xlsx"
-        if os.path.exists(result_file):
-            result_df = pd.read_excel(result_file)
-            result_df = pd.concat([result_df, pd.DataFrame([new_row])], ignore_index=True)
-        else:
-            result_df = pd.DataFrame([new_row])
-
-        # Save updated results
-        result_df.to_excel(result_file, index=False)
-        st.success("Məlumatlar göndərildi!")
+            result_df.to_excel(result_file, index=False)
+            st.success("Məlumatlar uğurla göndərildi!")
