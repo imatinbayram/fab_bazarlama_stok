@@ -50,7 +50,7 @@ with st.spinner("Məlumatlar yüklənir..."):
                 st.dataframe(df, use_container_width=True)
 
                 # Yükləmə düyməsi
-                csv = df.to_csv(index=False).encode('utf-8-sig')
+                csv = df.to_excel(index=False)
                 st.download_button(
                     label="📥 Excel kimi yüklə",
                     data=csv,
