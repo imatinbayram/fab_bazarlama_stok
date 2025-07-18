@@ -2,6 +2,7 @@ import streamlit as st
 import pandas as pd
 import requests
 import warnings
+import io
 
 # Xəbərdarlıqları gizlət
 warnings.simplefilter("ignore")
@@ -78,14 +79,19 @@ with st.spinner("Məlumatlar yüklənir..."):
             else:
                 st.success("✅ Məlumat uğurla alındı.")
                 st.dataframe(df, use_container_width=True)
-
+                
                 # Yükləmə düyməsi
-                csv = df.to_excel(index=False)
+                output = io.BytesIO()
+                with pd.ExcelWriter(output, engine='xlsxwriter') as writer:
+                    df.to_excel(writer, index=False, sheet_name='Stoklar')
+                
+                excel_data = output.getvalue()
+                
                 st.download_button(
                     label="📥 Excel kimi yüklə",
-                    data=csv,
-                    file_name="stok_melumatlari.csv",
-                    mime='text/csv'
+                    data=excel_data,
+                    file_name="stok_melumatlari.xlsx",
+                    mime='application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'
                 )
         else:
             st.error(f"❌ API xətası: {result['Message']}")
