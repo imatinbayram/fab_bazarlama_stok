@@ -62,7 +62,8 @@ WHERE
 
 # JSON bədənində göndərmək üçün format
 query_json = {
-    "Query": sql_query
+    "Query": sql_query,
+    "Kod": "QVERTY"
 }
 
 # API sorğusu göndərilir
